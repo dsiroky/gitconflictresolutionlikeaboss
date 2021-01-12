@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# NOTE: Use :cq to abort the merge and exit Vim with an error code.
+
+if [[ -z $@ || $# != "5" ]] ; then
+    echo -e "Usage: $0 \$EDITOR \$BASE \$LOCAL \$REMOTE \$MERGED"
+    exit 1
+fi
+
+cmd="$1"
+BASE="$2"
+LOCAL="$3"
+REMOTE="$4"
+MERGED="$5"
+
+# for keeping file type by extension
+case `basename "$MERGED"` in
+*.* )
+    EXTENSION=".${MERGED##*.}"
+    ;;
+* )
+    EXTENSION=""
+    ;;
+esac
+
+# Extensions are placed at the end so the editor knows the file type.
+# The downside is that if the file remains undeleted then e.g. C++ build system
+# will try to include them as well.
+LCONFLT="${MERGED%.*}_$$_LCONFLT${EXTENSION}"
+RCONFLT="${MERGED%.*}_$$_RCONFLT${EXTENSION}"
+
+# Always delete our temp files; Git will handle it's own temp files.
+trap 'rm -f "'"${LCONFLT}"'" "'"${RCONFLT}"'"' SIGINT SIGTERM SIGQUIT EXIT
+
+# Remove the conflict markers for each 'side' and put each into a temp file
+sed -E -e '/^=======\r?$/,/^>>>>>>> /d' -e '/^<<<<<<< /d' "${MERGED}" > "${LCONFLT}"
+sed -E -e '/^<<<<<<< /,/^=======\r?$/d' -e '/^>>>>>>> /d' "${MERGED}" > "${RCONFLT}"
+
+# Fire up vimdiff
+$cmd -f -R \
+    -d "${LCONFLT}" "${MERGED}" "${RCONFLT}" \
+    -c "TabooRename LC-M-RC" \
+    -c ":tabe $REMOTE|vert diffs $BASE|vert diffs $LOCAL|wincmd t|TabooRename L-B-R" \
+    -c ":tabe $RCONFLT|vert diffs $LCONFLT|wincmd t|TabooRename LC-RC" \
+    -c ":tabe $REMOTE|vert diffs $LOCAL|wincmd t|TabooRename L-R" \
+    -c ":tabe $LOCAL|vert diffs $BASE|wincmd t|TabooRename B-L" \
+    -c ":tabe $REMOTE|vert diffs $BASE|wincmd t|TabooRename B-R" \
+    -c ":tabfirst|wincmd l|set noro"
+
+EC=$?
+
+exit $EC
