@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# .gitignore section:
+# [mergetool "diffconflicts_meld"]
+#     cmd=/usr/local/bin/diffconflicts_meld "$BASE" "$LOCAL" "$REMOTE" "$MERGED"
+#     keepBackup=false
+#     trustExitCode = false
+#     prompt=false
+
+if [[ -z $@ || $# != "4" ]] ; then
+    echo -e "Usage: $0 \$BASE \$LOCAL \$REMOTE \$MERGED"
+    exit 1
+fi
+
+BASE="$1"
+LOCAL="$2"
+REMOTE="$3"
+MERGED="$4"
+
+# for keeping file type by extension
+case `basename "$MERGED"` in
+*.* )
+    EXTENSION=".${MERGED##*.}"
+    ;;
+* )
+    EXTENSION=""
+    ;;
+esac
+
+# Extensions are placed at the end so the editor knows the file type.
+# The downside is that if the file remains undeleted then e.g. C++ build system
+# will try to include them as well.
+LCONFLT="${MERGED%.*}_$$_LCONFLT${EXTENSION}"
+RCONFLT="${MERGED%.*}_$$_RCONFLT${EXTENSION}"
+
+# Always delete our temp files; Git will handle it's own temp files.
+trap 'rm -f "'"${LCONFLT}"'" "'"${RCONFLT}"'"' SIGINT SIGTERM SIGQUIT EXIT
+
+# Remove the conflict markers for each 'side' and put each into a temp file
+sed -E -e '/^=======\r?$/,/^>>>>>>> /d' -e '/^<<<<<<< /d' "${MERGED}" > "${LCONFLT}"
+sed -E -e '/^<<<<<<< /,/^=======\r?$/d' -e '/^>>>>>>> /d' "${MERGED}" > "${RCONFLT}"
+
+# this strange way with sleeps is necessary if you want to have labeled tabs
+meld -L LC-M-RC "${LCONFLT}" "${MERGED}" "${RCONFLT}" &
+MELD_PID=$!
+sleep 0.5
+meld -n -L L-B-R "${LOCAL}" "${BASE}" "${REMOTE}" &
+sleep 0.1
+meld -n -L LC-RC "${LCONFLT}" "${RCONFLT}" &
+sleep 0.1
+meld -n -L L-R "${LOCAL}" "${REMOTE}" &
+sleep 0.1
+meld -n -L B-L "${BASE}" "${LOCAL}" &
+sleep 0.1
+meld -n -L B-R "${BASE}" "${REMOTE}" &
+
+wait $MELD_PID
+EC=$?
+
+exit $EC
