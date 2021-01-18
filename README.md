@@ -84,6 +84,10 @@ resolved it. Vim does not know you gave up. You must quit with `:cq`.
 * Lines are ugly long and line wrapping is flipping your mind? Flip your split
   with `:windo wincmd J` or `:windo wincmd L`.
 
+* Show remote commit causing the conflict: `git show REBASE_HEAD`
+
+* Show local commit: git blame on lines in the conflict.
+
 ## Source of inspiration
 * https://github.com/whiteinge/dotfiles/blob/master/bin/diffconflicts
 * https://stackoverflow.com/questions/161813/how-to-resolve-merge-conflicts-in-git-repository
