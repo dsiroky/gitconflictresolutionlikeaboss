@@ -44,6 +44,8 @@ sed -E -e '/^<<<<<<< /,/^=======\r?$/d' -e '/^>>>>>>> /d' "${MERGED}" > "${RCONF
 meld -L LC-M-RC "${LCONFLT}" "${MERGED}" "${RCONFLT}" &
 MELD_PID=$!
 sleep 0.5
+meld -n -L L-M-R "${LOCAL}" "${MERGED}" "${REMOTE}" &
+sleep 0.5
 meld -n -L L-B-R "${LOCAL}" "${BASE}" "${REMOTE}" &
 sleep 0.1
 meld -n -L LC-RC "${LCONFLT}" "${RCONFLT}" &

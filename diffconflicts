@@ -40,6 +40,7 @@ sed -E -e '/^<<<<<<< /,/^=======\r?$/d' -e '/^>>>>>>> /d' "${MERGED}" > "${RCONF
 $cmd -f -R \
     -d "${LCONFLT}" "${MERGED}" "${RCONFLT}" \
     -c "TabooRename LC-M-RC" \
+    -c ":tabe $REMOTE|vert diffs $MERGED|vert diffs $LOCAL|wincmd t|TabooRename L-M-R" \
     -c ":tabe $REMOTE|vert diffs $BASE|vert diffs $LOCAL|wincmd t|TabooRename L-B-R" \
     -c ":tabe $RCONFLT|vert diffs $LCONFLT|wincmd t|TabooRename LC-RC" \
     -c ":tabe $REMOTE|vert diffs $LOCAL|wincmd t|TabooRename L-R" \
